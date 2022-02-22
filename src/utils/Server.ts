@@ -9,6 +9,19 @@ interface Response {
     public_key: string;
 }
 
+export const storeData = async(value: Object) => {
+    try {
+        await AsyncStorage.removeItem('@mock_server_data')
+        const result = JSON.stringify(value);
+
+        console.log("RESULT", result)
+        await AsyncStorage.setItem('@mock_server_data', result)
+    } catch (e) {
+        console.log('errors', (e as Error).message)
+    }
+}
+
+
 const getData = async() => {
     try {
         const jsonValue = await AsyncStorage.getItem('@mock_server_data');
@@ -18,6 +31,7 @@ const getData = async() => {
         console.log((e as Error).message);
     }
 }
+
 export const send_to_server = async(encrypted_message: string, message: string) => {
     const mocked_response = await (getData() as any);
     console.log(mocked_response[0])
