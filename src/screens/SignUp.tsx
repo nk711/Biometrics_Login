@@ -43,9 +43,13 @@ export const SignUp = () => {
         setLoading(true);
         try {
             // Generate Private and Public Key
-            const keys = await RSA.generateKeys(4096);  
+            const keys = await RSA.generateKeys(3072);  
+            
             // Encrypt password
             const encryptedPin = await RSA.encrypt(values.pin, keys.public)
+
+            console.log("encrypted pin", encryptedPin)
+
             // Send Payload to AWS Cognito
             const user = {
                 first_name: "first_name_placeholder",
@@ -54,10 +58,13 @@ export const SignUp = () => {
                 pin: encryptedPin,
                 public_key: keys.public as string
             }
-            storeData(user); // Replace with Cognito stuff API <---
+            await storeData(user); // Replace with Cognito stuff API <---
+            console.log()
             // Store private key securely onto the device
-            await Keychain.setGenericPassword('nithesh@hotmail.co.uk', keys.private)
-            console.log("User has signed up successfully", values)
+            await Keychain.setGenericPassword('nithesh@hotmail.co.uk', keys.private, {
+                storage: Keychain.STORAGE_TYPE.RSA,
+            })
+            console.log("User has signed up successfully:", values)
             setLoading(false)
             navigation.navigate('Login');
         } catch (errors) {

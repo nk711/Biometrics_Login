@@ -11,6 +11,13 @@ import { colors } from "../utils/style";
 import { CustomInput } from "../components/CustomInput";
 
 
+const BiometryTypes = {
+    TouchID: 'TouchID',
+    FaceID: 'FaceID',
+    Fingerprint: 'Fingerprint',
+
+}
+
 const loginValidationSchema = yup.object().shape({
     email: yup
         .string()
@@ -23,6 +30,9 @@ const loginValidationSchema = yup.object().shape({
         .required('Pin is required'),
 });
 
+
+
+
 export const Login = () => {
     const navigation = useNavigation();
     const [keyExists, setKeyExists] = useState(false);
@@ -32,13 +42,13 @@ export const Login = () => {
     const [isEnrolled, setIsEnrolled] = useState(false);
     let resultMessage = <Text></Text>;
 
+
     const checkSupportedAuthentication = async() => {
         const types = await supportedAuthenticationTypesAsync();
         if (types && types.length) {
             setFaceRec(types.includes(AuthenticationType.FACIAL_RECOGNITION));
             setFingerPrintRec(types.includes(AuthenticationType.FINGERPRINT));
             setIrisRec(types.includes(AuthenticationType.IRIS))
-
             //Checks if user has enrolled Fingerprint/ FaceID on device
             const enrolled = await isEnrolledAsync();
             setIsEnrolled(enrolled)
@@ -51,15 +61,33 @@ export const Login = () => {
 
     const checkIfKeyExists = async() => {
         let result = false;
-        let credentials = await Keychain.getGenericPassword();
-        if (credentials)  result = true;
-        setKeyExists(result);
+        await Keychain.getGenericPassword({
+            service: 'service-name'
+        }).then((result: boolean | { service: string, username: string, password: string }) => {
+            if(!result) {
+                console.log('Biometrics failed')
+            }
+            if (typeof result !== 'boolean') {
+                console.log('authentication passed', result.username)
+            }
+        }).catch(async (error) => {
+            if ((await Keychain.getSupportedBiometryType())===null) {
+                console.log('disables biometric')
+                return;
+            }
+
+            console.log((error as Error).message)
+        })
+
+        //if (credentials)  result = true;
+        //setKeyExists(result);
     }
 
     useFocusEffect( () => {
         checkIfKeyExists().catch(console.error);
         console.log("Key in keychain Exists", keyExists)
-        if (keyExists) checkSupportedAuthentication();
+        //if (keyExists) checkSupportedAuthentication();
+        //if (keyExists) authenticateWithKeyChain();
     });
 
 
@@ -153,7 +181,7 @@ export const Login = () => {
                         >
                             Don't have an account ? Sign Up</Text>
                         <Text style= {login.signUpLbl}
-                        onPress = {() => {Keychain.resetGenericPassword(); console.log('cleared');}}
+                        onPress = {async() => { await Keychain.resetGenericPassword(); console.log('cleared');}}
                         >
                             Clear Key-Chain Values</Text> 
                     </>
