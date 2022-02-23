@@ -11,14 +11,6 @@ import { colors } from "../utils/style";
 import { CustomInput } from "../components/CustomInput";
 
 
-enum Authentication {
-    CANCELLED = 'CANCELLED',
-    DISABLED = 'DISABLED',
-    ERROR = 'ERROR',
-    SUCCESS = 'SUCCESS',
-}
-
-
 const loginValidationSchema = yup.object().shape({
     email: yup
         .string()
@@ -31,10 +23,6 @@ const loginValidationSchema = yup.object().shape({
         .required('Pin is required'),
 });
 
-interface valueType {
-    email: string
-    pin: string
-}
 export const Login = () => {
     const navigation = useNavigation();
     const [keyExists, setKeyExists] = useState(false);
@@ -42,9 +30,7 @@ export const Login = () => {
     const [irisRec, setIrisRec] = useState(false);
     const [fingerPrintRec, setFingerPrintRec] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
-    const [result, setResult] = useState<Authentication>();
-
-    let biometricTypes = [] as any
+    let resultMessage = <Text></Text>;
 
     const checkSupportedAuthentication = async() => {
         const types = await supportedAuthenticationTypesAsync();
@@ -52,10 +38,6 @@ export const Login = () => {
             setFaceRec(types.includes(AuthenticationType.FACIAL_RECOGNITION));
             setFingerPrintRec(types.includes(AuthenticationType.FINGERPRINT));
             setIrisRec(types.includes(AuthenticationType.IRIS))
-
-            if (faceRec) biometricTypes.push('Face ID')
-            if (fingerPrintRec) biometricTypes.push('Touch ID')
-            if (irisRec) biometricTypes.push('Iris ID')
 
             //Checks if user has enrolled Fingerprint/ FaceID on device
             const enrolled = await isEnrolledAsync();
@@ -67,97 +49,64 @@ export const Login = () => {
         }
     }
 
-    useFocusEffect(() => {
-        const checkIfKeyExists = async() => {
-            let result = false;
-            let credentials = await Keychain.getGenericPassword();
-            if (credentials)  result = true;
-            setKeyExists(result);
-        }
+    const checkIfKeyExists = async() => {
+        let result = false;
+        let credentials = await Keychain.getGenericPassword();
+        if (credentials)  result = true;
+        setKeyExists(result);
+    }
+
+    useFocusEffect( () => {
         checkIfKeyExists().catch(console.error);
-
+        console.log("Key in keychain Exists", keyExists)
         if (keyExists) checkSupportedAuthentication();
-
-        console.log("Is User Enrolled", isEnrolled);
-        console.log("check if key exists", keyExists);
-
     });
 
 
+    //TO-DO: Add Mock login functionality
     const handleLogin = () => {
-        console.log('logging you in');
+        console.log('Success');
+        navigation.navigate('Home');
     }
 
     const handleBiometrics= async() => {
         try {            
-            const result = await authenticateAsync();
+            const result = await authenticateAsync({
+                promptMessage: 'Authenticate with Biometrics',
+                disableDeviceFallback: true,
+                cancelLabel: 'Use App Code',
+                fallbackLabel: 'Use App Code',
+            });
+            console.log("Result", result)
             if (result.success) {
-                setResult(Authentication.SUCCESS)
                 const credentials = await Keychain.getGenericPassword()
                 if (credentials) {                    
                     console.log('Loaded user', credentials.username)
                     const message =  await RSA.sign('ThisIsARandomMessage', credentials.password as string)
                     const result = await send_to_server(message, 'ThisIsARandomMessage')
-
                     console.log("FINAL OUTPUT", result)
-                    Alert.alert('USER AUTHENTICATED', 'user successfully authenticated')
+                    // successfull
+                    navigation.navigate('Home')
                 } else {
+                    // No credentials
                     Alert.alert('NOT AUTHORISED', 'NO CREDENTIALS')
                 }
             } else if (result.error==='unknown') {
-                setResult(Authentication.DISABLED)
+                resultMessage = <Text>Authentication disabled, Please Sign in using pincode</Text>;
             } else if (
                 result.error === 'user_cancel' ||
                 result.error === 'system_cancel' ||
                 result.error === 'app_cancel'
             ) {
-                setResult(Authentication.ERROR)
-                console.log("SOMETHING HAPPENED HEREE")
+                //Alert.alert('Authentication', 'Authentication has been cancelled')
+                resultMessage = <Text>Please sign in using pincode </Text>;
+
             }
         } catch (error) {
-            setResult(Authentication.ERROR)
-            Alert.alert('An error has occured', (error as Error).message)
+            Alert.alert('Authentication', 'An error has occured, please use pincode to sign in')
+            console.log('An error has occured', (error as Error).message)
+            resultMessage = <Text>Please Sign in using pincode</Text>;
         }
-    }
-
-
-    let resultMessage;
-    switch (result) {
-        case Authentication.SUCCESS:
-            resultMessage = 'Successfully Authenticated';
-            break;
-        case Authentication.ERROR:
-            resultMessage = 'There was an error in authentication';
-            break;
-        case Authentication.DISABLED:
-            resultMessage = 'Authentication has been disabled';
-            break; 
-        case Authentication.CANCELLED:
-            resultMessage = 'Cancelled';
-            break;            
-        default:
-            resultMessage = 'text';
-            break;
-    }
-
-    let prompt = "Authenticate with "
-    
-    if (faceRec && fingerPrintRec && irisRec) {
-        prompt = "Authenticate with Face ID, Touch ID, or Iris ID";
-    } else if (faceRec && fingerPrintRec) {
-        prompt = "Authenticate with Face ID or Touch ID"
-    } else if (fingerPrintRec && irisRec) {
-        prompt = "Authenticate with Touch ID or Iris ID"
-    } else if (faceRec && irisRec) {
-        prompt = "Authenticate with Face ID or Iris ID"
-    } else if (faceRec) {
-        prompt = "Authenticate with Face ID"
-    } else if (fingerPrintRec) {
-        prompt = "Authenticate with Touch ID"
-    } else if (irisRec) {
-        prompt = "Authenticate with Iris ID"
-    } else {
-        prompt = "No Biometrics Available"
     }
 
     return (
@@ -168,12 +117,6 @@ export const Login = () => {
             <ScrollView>
                 <View style={login.container}>
                 <Text style = {login.header}>Lets Sign you In.</Text>
-                
-                { 
-                    ((faceRec || irisRec || fingerPrintRec) && (isEnrolled)) ? 
-                (
-                    <Text style = {input.textInput}> { prompt } </Text>
-                ) : (
                 <Formik
                     validationSchema={loginValidationSchema}
                     initialValues={{email: '', pin: ''}}
@@ -201,24 +144,22 @@ export const Login = () => {
                             />
                             <Text style= {login.signUpLbl} >Forgotten Pin?</Text> 
                         </View>
-                        <TouchableOpacity style = {
-                            !isValid||values.email===''
-                            ? { ...button.redButton, ...button.buttonDisabled }
-                            : button.redButton
-                        }
-                            onPress = {handleSubmit}
-                            disabled={!isValid || values.email === ''}> 
+                        <TouchableOpacity style = {button.redButton}
+                            onPress = {handleSubmit}> 
                             <Text style= {button.whiteLabel}>Login</Text> 
                         </TouchableOpacity>
                         <Text style= {login.signUpLbl}
                             onPress = {() => navigation.navigate('SignUp')}
                         >
-                            Don't have an account ? Sign Up</Text> 
+                            Don't have an account ? Sign Up</Text>
+                        <Text style= {login.signUpLbl}
+                        onPress = {() => {Keychain.resetGenericPassword(); console.log('cleared');}}
+                        >
+                            Clear Key-Chain Values</Text> 
                     </>
                     )}
-                </Formik>
-                )}
-                { resultMessage && <Text> {resultMessage} </Text> }
+               </Formik>
+               { resultMessage }
                 </View>
 
             </ScrollView>
@@ -270,6 +211,22 @@ const input = StyleSheet.create({
 })
 
 const login = StyleSheet.create({
+    biometricBtn: {
+        fontSize: 20,
+        color: 'black',
+        fontWeight: '400',
+        textAlign: "right",
+        marginTop: 20,
+        textDecorationLine: 'underline',
+    },
+    prompt: {
+        marginTop:100,
+        fontSize: 40,
+        color: 'black',
+        fontWeight: '300',
+        width:'80%',
+        textAlign: 'center'
+    },
     page: {
         flex: 1,
         backgroundColor: 'white',

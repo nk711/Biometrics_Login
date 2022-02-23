@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { Alert } from "react-native";
 import { RSA } from "react-native-rsa-native"
+import { string } from "yup/lib/locale";
 
 interface Response {
     first_name: string;
@@ -41,4 +42,8 @@ export const send_to_server = async(encrypted_message: string, message: string) 
     } else {
         return false;
     }
+}
+
+export const login_user = async(username: string, password: string) => {
+    return true;
 }
