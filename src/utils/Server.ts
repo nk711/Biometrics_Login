@@ -34,15 +34,16 @@ const getData = async() => {
     }
 }
 
-export const send_to_server = async(encrypted_message: string, message: string) => {
-    const mocked_response = await (getData() as any);
-    console.log(mocked_response[0])
-    if (mocked_response) {
-        console.log("mocked_response", mocked_response.public_key)
-        return await RSA.verify(encrypted_message, message, mocked_response.public_key as string)
-    } else {
-        return false;
-    }
+export const send_to_server = async(accessToken: string) => {
+    // const mocked_response = await (getData() as any);
+    // console.log(mocked_response[0])
+    // if (mocked_response) {
+    //     console.log("mocked_response", mocked_response.public_key)
+    //     return await RSA.verify(encrypted_message, message, mocked_response.public_key as string)
+    // } else {
+    //     return false;
+    // }
+    return true
 }
 
 export const login_user = async(username: string, password: string) => {

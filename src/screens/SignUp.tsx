@@ -68,6 +68,7 @@ export const SignUp = () => {
             const accessToken = await storeData(user); 
             // Store private key securely onto the device
             await Keychain.setGenericPassword('HASHEDKEY', accessToken)
+
             console.log("User has signed up successfully", values)
             setLoading(false)
             navigation.navigate('Login');

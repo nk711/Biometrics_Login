@@ -39,7 +39,6 @@ export const Login = () => {
             setFaceRec(types.includes(AuthenticationType.FACIAL_RECOGNITION));
             setFingerPrintRec(types.includes(AuthenticationType.FINGERPRINT));
             setIrisRec(types.includes(AuthenticationType.IRIS))
-
             //Checks if user has enrolled Fingerprint/ FaceID on device
             const enrolled = await isEnrolledAsync();
             setIsEnrolled(enrolled)
@@ -82,9 +81,8 @@ export const Login = () => {
                 const credentials = await Keychain.getGenericPassword()
                 if (credentials) {                    
                     console.log('Loaded user', credentials.username)
-                    const message =  await RSA.sign('ThisIsARandomMessage', credentials.password as string)
-                    const result = await send_to_server(message, 'ThisIsARandomMessage')
-                    console.log("FINAL OUTPUT", result)
+                    const accessToken = credentials.password as string
+                    const result = await send_to_server(accessToken)
                     // successfull
                     navigation.navigate('Home')
                 } else {
@@ -154,8 +152,7 @@ export const Login = () => {
                             Don't have an account ? Sign Up</Text>
                         <Text style= {login.signUpLbl}
                         onPress = {() => {Keychain.resetGenericPassword(); console.log('cleared');}}
-                        >
-                            Clear Key-Chain Values</Text> 
+                        > Clear Key-Chain Values</Text> 
                     </>
                     )}
                </Formik>
