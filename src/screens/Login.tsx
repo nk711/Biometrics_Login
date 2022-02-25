@@ -30,6 +30,7 @@ export const Login = () => {
     const [irisRec, setIrisRec] = useState(false);
     const [fingerPrintRec, setFingerPrintRec] = useState(false);
     const [isEnrolled, setIsEnrolled] = useState(false);
+
     let resultMessage = <Text></Text>;
 
     const checkSupportedAuthentication = async() => {
@@ -61,7 +62,6 @@ export const Login = () => {
         console.log("Key in keychain Exists", keyExists)
         if (keyExists) checkSupportedAuthentication();
     });
-
 
     //TO-DO: Add Mock login functionality
     const handleLogin = () => {

@@ -34,29 +34,40 @@ interface valueType {
     pin: string
     confirmPin: string
 }
+
 export const SignUp = () => {
     const navigation = useNavigation();
     const [loading, setLoading] = useState(false);
     
     const handleSignUp = async(values: valueType) => {  
-
         setLoading(true);
         try {
-            // Generate Private and Public Key
-            const keys = await RSA.generateKeys(4096);  
-            // Encrypt password
-            const encryptedPin = await RSA.encrypt(values.pin, keys.public)
             // Send Payload to AWS Cognito
             const user = {
                 first_name: "first_name_placeholder",
                 last_name: "last_name_placeholder",
                 email: values.email,
-                pin: encryptedPin,
-                public_key: keys.public as string
+                pin: values.pin,
             }
-            storeData(user); // Replace with Cognito stuff API <---
+
+            //Example AWS Cognito SignUp
+            // Auth.signUp({
+            //     username: values.email,
+            //     password: values.pin,
+            //     attributes: {
+            //         first_name: "firstname",
+            //         last_name: "lastname"
+            //     }
+            // })
+            //  .then( data => { navigation.navigate('Confirmation', data)})
+            //  .then( console.log((error as Error).message))
+            // => Goes to Confirmation Screen
+
+
+            // vvvv Instead we are going to use the below vvvvv
+            const accessToken = await storeData(user); 
             // Store private key securely onto the device
-            await Keychain.setGenericPassword('nithesh@hotmail.co.uk', keys.private)
+            await Keychain.setGenericPassword('HASHEDKEY', accessToken)
             console.log("User has signed up successfully", values)
             setLoading(false)
             navigation.navigate('Login');
@@ -127,9 +138,8 @@ export const SignUp = () => {
                     </>
                     )}
                 </Formik>
-                <Text style= {signup.signUpLbl}
-                    onPress = {() => navigation.navigate('Login')}
-                >
+                <Text style= {signup.signUpLbl} 
+                      onPress = {() => navigation.navigate('Login')}>
                     Already have an account? </Text> 
                 </View>
             </ScrollView>

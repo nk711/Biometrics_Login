@@ -10,7 +10,7 @@ interface Response {
     public_key: string;
 }
 
-export const storeData = async(value: Object) => {
+export const storeData = async(value: Object): Promise<string> => {
     try {
         await AsyncStorage.removeItem('@mock_server_data')
         const result = JSON.stringify(value);
@@ -20,6 +20,7 @@ export const storeData = async(value: Object) => {
     } catch (e) {
         console.log('errors', (e as Error).message)
     }
+    return "TokenFromCognitoServer"
 }
 
 
