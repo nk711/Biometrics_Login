@@ -193,18 +193,9 @@ const input = StyleSheet.create({
         fontSize: 20,
         color: colors.black,
         fontWeight: '300',
-        width: 175,
         textAlign: "left",
         paddingBottom:10,
     },
-    textbox: {
-        backgroundColor: '#E2E2E2',
-        height: 70,
-        width: 400,
-        borderRadius: 10,
-        fontSize: 20,
-        paddingHorizontal: 20,
-    }
 })
 
 const login = StyleSheet.create({

@@ -127,13 +127,8 @@ export const SignUp = () => {
                             />
                         </View>
 
-                        <TouchableOpacity style = {
-                            !isValid||values.email===''
-                            ? { ...button.redButton, ...button.buttonDisabled }
-                            : button.redButton
-                        }
-                            onPress = {handleSubmit}
-                            disabled={!isValid || values.email === ''}> 
+                        <TouchableOpacity style = {button.redButton}
+                            onPress = {handleSubmit}> 
                             <Text style= {button.whiteLabel}>Register</Text> 
                         </TouchableOpacity>
                     </>
