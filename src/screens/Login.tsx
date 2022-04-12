@@ -9,6 +9,7 @@ import * as yup from 'yup';
 import { Field, Formik  } from "formik";
 import { colors } from "../utils/style";
 import { CustomInput } from "../components/CustomInput";
+import useBiometrics from "../hooks/useBiometrics";
 
 
 const loginValidationSchema = yup.object().shape({
@@ -23,31 +24,21 @@ const loginValidationSchema = yup.object().shape({
         .required('Pin is required'),
 });
 
-export const Login = () => {
+export const Login: React.FC = () => {
     const navigation = useNavigation();
     const [keyExists, setKeyExists] = useState(false);
-    const [faceRec, setFaceRec] = useState(false);
-    const [irisRec, setIrisRec] = useState(false);
-    const [fingerPrintRec, setFingerPrintRec] = useState(false);
-    const [isEnrolled, setIsEnrolled] = useState(false);
 
-    let resultMessage = <Text></Text>;
+    const [
+        isBiometricSupported,
+        isUserEnrolled,
+        isAuthenticated,
+        resultMessage,
+        authenticate,
+    ] = useBiometrics();
+      
 
-    const checkSupportedAuthentication = async() => {
-        const types = await supportedAuthenticationTypesAsync();
-        if (types && types.length) {
-            setFaceRec(types.includes(AuthenticationType.FACIAL_RECOGNITION));
-            setFingerPrintRec(types.includes(AuthenticationType.FINGERPRINT));
-            setIrisRec(types.includes(AuthenticationType.IRIS))
-            //Checks if user has enrolled Fingerprint/ FaceID on device
-            const enrolled = await isEnrolledAsync();
-            setIsEnrolled(enrolled)
-        }
+    let resultText = <Text></Text>;
 
-        if (isEnrolled && (faceRec||fingerPrintRec||irisRec)) {
-            handleBiometrics();
-        }
-    }
 
     const checkIfKeyExists = async() => {
         let result = false;
@@ -56,57 +47,41 @@ export const Login = () => {
         setKeyExists(result);
     }
 
-    useFocusEffect( () => {
-        checkIfKeyExists().catch(console.error);
-        console.log("Key in keychain Exists", keyExists)
-        if (keyExists) checkSupportedAuthentication();
+    useFocusEffect(() => {
+        if (keyExists && isBiometricSupported && isUserEnrolled) {
+            checkIfKeyExists().catch(console.error);
+            if (keyExists && isBiometricSupported && isUserEnrolled) {
+                authenticate();
+            } else {
+                resultText = <Text> Sign Up </Text>;
+            }
+        }
     });
 
-    //TO-DO: Add Mock login functionality
+    useEffect(() => {
+        const login = async () => {
+            const credentials = await Keychain.getGenericPassword()
+            if (credentials) {                    
+                console.log('Loaded user', credentials.username)
+                const accessToken = credentials.password as string
+                const result = await send_to_server(accessToken)
+                if (result) navigation.navigate('Home');
+            } else {
+                Alert.alert('NOT AUTHORISED', 'NO CREDENTIALS')
+            }
+        }
+        if (isAuthenticated) login();        
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        resultText = <Text> { resultMessage } </Text>
+    }, [resultMessage])
+
     const handleLogin = () => {
         console.log('Success');
         navigation.navigate('Home');
     }
-
-    const handleBiometrics= async() => {
-        try {            
-            const result = await authenticateAsync({
-                promptMessage: 'Authenticate with Biometrics',
-                disableDeviceFallback: true,
-                cancelLabel: 'Use App Code',
-                fallbackLabel: 'Use App Code',
-            });
-            console.log("Result", result)
-            if (result.success) {
-                const credentials = await Keychain.getGenericPassword()
-                if (credentials) {                    
-                    console.log('Loaded user', credentials.username)
-                    const accessToken = credentials.password as string
-                    const result = await send_to_server(accessToken)
-                    // successfull
-                    navigation.navigate('Home')
-                } else {
-                    // No credentials
-                    Alert.alert('NOT AUTHORISED', 'NO CREDENTIALS')
-                }
-            } else if (result.error==='unknown') {
-                resultMessage = <Text>Authentication disabled, Please Sign in using pincode</Text>;
-            } else if (
-                result.error === 'user_cancel' ||
-                result.error === 'system_cancel' ||
-                result.error === 'app_cancel'
-            ) {
-                //Alert.alert('Authentication', 'Authentication has been cancelled')
-                resultMessage = <Text>Please sign in using pincode </Text>;
-
-            }
-        } catch (error) {
-            Alert.alert('Authentication', 'An error has occured, please use pincode to sign in')
-            console.log('An error has occured', (error as Error).message)
-            resultMessage = <Text>Please Sign in using pincode</Text>;
-        }
-    }
-
+    
     return (
         <KeyboardAvoidingView
             behavior = {Platform.OS ==='ios' ? 'padding' : 'height'}

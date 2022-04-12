@@ -11,6 +11,7 @@ import { Alert } from 'react-native';
 const useBiometrics = () => {
     const [isBiometricSupported, setIsBiometricSupported] = useState<Boolean>(false);
     const [isUserEnrolled, setIsUserEnrolled] = useState<boolean>(false);
+    const [resultMessage, setResultMessage] = useState<Text>();
     const [isAuthenticated, setIsAuthenticated]= useState<any>(
         {},
     );
@@ -44,27 +45,17 @@ const useBiometrics = () => {
            
             if (result.success) {
               setIsAuthenticated(result)
-              const credentials = await Keychain.getGenericPassword()
-              if (credentials) {                    
-                  console.log('Loaded user', credentials.username)
-                  const accessToken = credentials.password as string
-                  const result = await send_to_server(accessToken)
-                  // successfull
-                  return result
-              } else {
-                  // No credentials
-                  Alert.alert('NOT AUTHORISED', 'NO CREDENTIALS')
-              }
+              setResultMessage("Success")
             } 
             else if (result.error==='unknown') {
-              console.log('unknown error')
+              setResultMessage("Authentication disabled - Please try again later")
             }
             else if (
               result.error === 'user_cancel' ||
               result.error === 'system_cancel' ||
               result.error === 'app_cancel'
             ) {
-               console.log('appcode')  
+              setResultMessage("Authentication disabled, Please Sign in using AppCode")
             }
   
         } catch (e) {
@@ -86,6 +77,7 @@ const useBiometrics = () => {
           isBiometricSupported,
           isUserEnrolled,
           isAuthenticated,
+          resultMessage,
           authenticate,
         ] as const;
     };
